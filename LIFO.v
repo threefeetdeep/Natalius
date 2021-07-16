@@ -1,26 +1,11 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date:    11:39:35 05/16/2012 
-// Design Name: 
-// Module Name:    LIFO 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
-//
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
-//
+// 									PC STACK
+//					(LIFO - last in, first out register array)
 //////////////////////////////////////////////////////////////////////////////////
 module LIFO(
     input clk,
-	 input rst,
+	input rst,
     input wr_en,
     input rd_en,
     input [10:0] din,
@@ -28,27 +13,27 @@ module LIFO(
     );
 
 
-   (* RAM_STYLE="DISTRIBUTED" *)
-   reg [3:0] addr;
-	reg [10:0] ram [15:0];
+   // (*  RAM_STYLE="DISTRIBUTED" *)
+   reg [3:0] stack_addr;	
+   reg [10:0] stack [15:0];
 
    always@(posedge clk)
 		if (rst)
-			addr<=0;
+			stack_addr<=0;
 		else 
 			 begin 
-			  if (wr_en==0 && rd_en==1)  //leer
-					if (addr>0)
-						addr<=addr-1;
-			  if (wr_en==1 && rd_en==0)  //guardar
-					if (addr<15)
-						addr<=addr+1;
+			  if (wr_en==0 && rd_en==1)  // remove item from stack
+					if (stack_addr > 0)
+						stack_addr <= stack_addr-1;
+			  if (wr_en==1 && rd_en == 0)  // add item to stack (BEWARE: no overflow detection!!!)
+					if (stack_addr<15)
+						stack_addr <= stack_addr+1;
 			 end
 		
 	always @(posedge clk)
       if (wr_en)
-         ram[addr] <= din;
+         stack[stack_addr] <= din;
 
-   assign dout = ram[addr];   
+   assign dout = stack[stack_addr];   
 
 endmodule

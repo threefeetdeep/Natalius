@@ -1,63 +1,46 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company:       Universidad Pontificia Bolivariana
-// Engineer:      Fabio Andres Guzman Figueroa
-// 
-// Create Date:    19:48:58 05/14/2012 
-// Design Name: 
-// Module Name:    control_unit 
-// Project Name: 
-// Target Devices: 
-// Tool versions: 
-// Description: 
-//
-// Dependencies: 
-//
-// Revision: 
-// Revision 0.01 - File Created
-// Additional Comments: 
 //		16.07.2021 Oli Bailey
 //		* added zero and carry flag effect to the follwing instructions:
 //		* adi, add, sub, oor, and, xor
+//		* added load from ROM 'ldr' instruction to allow storing data in ROM
 //
 //////////////////////////////////////////////////////////////////////////////////
 module control_unit(
     input clk,
     input rst,
-    input [15:0] instruction,
-    input z,
-    input c,
-    output reg [7:0] port_addr,
-    output reg write_e,
-    output reg read_e,
-    output reg insel,
-    output reg we,
-    output reg [2:0] raa,
-    output reg [2:0] rab,
-    output reg [2:0] wa,
-    output reg [2:0] opalu,
-    output reg [2:0] sh,
-    output reg selpc,
-    output reg ldpc,
-    output reg ldflag,
-    output reg [10:0] naddress,
-    output reg selk,
-    output reg [7:0] KTE,
-	 input [10:0] stack_addr,
-	 output reg wr_en, rd_en,
-	 output reg [7:0] imm,
-	 output reg selimm
+    input [15:0] instruction,		// the latest instruction loaded from ROM to be decoded
+    input zero,						// the current state of the zero flag
+    input carry,					// the current state of the carry flag
+    output reg [7:0] port_addr,		// the external memory address
+    output reg write_e,				// write to external memory or I/O signal
+    output reg read_e,				// read from external memory or I/O signal
+    output reg insel,				// is the register file to have data from the shifter or the input mux?
+    output reg we,					// write to register file enable
+    output reg [2:0] raa,			// register A
+    output reg [2:0] rab,			// register B
+    output reg [2:0] wa,			// register to be written to for '... rA,rB' instructions
+    output reg [2:0] opalu,			// which operation that the ALU should perform
+    output reg [2:0] sh,			// which shift opertion that the shifter should perform
+    output reg selpc,				// signal to load PC with next instruction address (otherwise increment it)
+    output reg ldpc,				// signal to load new value to PC
+    output reg ldflag,				// signal to transfer ALU Z/C outputs to the Z/C register
+    output reg [10:0] naddress,		// next instruction address from jump or call instructions
+    output reg selk,				// directs a literal to the data mux
+    output reg [7:0] KTE,			// register to hold a literal value in an instruction
+	 input [10:0] stack_addr,		// the current address at the top of the stack
+	 output reg wr_en, rd_en,		// signals to push and pop an address to the stack
+	 output reg [7:0] imm,			// immediate (literal) value for 'adi' add immediate instruction (NOTE: there is no 'subi')
+	 output reg selimm   			// direct the 'add' instruction literal 'imm' to the data mux
     );
 
-
-parameter fetch=	5'd0;
-parameter decode=	5'd1;
 
 ///////////////////////////////////////////////////////////////////////////////
 //							INSTRUCTION OPCODES
 ///////////////////////////////////////////////////////////////////////////////
-parameter spare1= 	5'd0;		// for future use?
-parameter spare2= 	5'd1;		// for future use?
+// (The following are all Instruction Decoder Mealy-type FSM states)
+parameter fetch=	5'd0;		
+parameter decode=	5'd1;
 parameter ldi=		5'd2;		// load a register (r0..r7) with a literal (0x00..0xFF)
 parameter ldm=		5'd3;		// load a register (r0..r7) from IO (0x20-0xFF) or RAM (0x00-0x1F)
 parameter stm=		5'd4;		// store a register (r0..r7) to IO  (0x20-0xFF) or RAM (0x00-0x1F)
@@ -87,21 +70,23 @@ parameter rrl=		5'd27;		// 'rrl, rA'  	: rotate rA left one bit
 parameter rrr=		5'd28;		// 'rrr, rA'  	: rotate rA right one bit
 parameter not_=		5'd29;		// 'not_ rA'  : rA = ~rA			NOTE: 'not' is a Verilog keyword hence 'not_'...
 parameter nop=		5'd30;		//  No Operation - waste 3 clock cycles
-parameter spare3= 	5'd31;   	//  for future use?
+parameter ldr= 		5'd31;   	//  'ldr rA,0xhhhh' : loads register A with lower 8 bits of ROM content at location 0xhhhh
+
+
 
 wire [4:0] opcode;
 reg [4:0] state;
 
+// Opcode is stored in the top 5 bits of each instruction
 assign opcode=instruction[15:11];
 
+// Mealy FSM (next) state logic:  'fetch --> decode --> execute' and repeat, 3 clk cycles total
 always@(posedge clk or posedge rst)
 	if (rst)
 		state <= decode;
 	else
 		case (state)
-			fetch: state <= decode;
-			
-			decode: case (opcode)
+			decode: case (opcode)  // 'execute' states
 						2		: 	state <= ldi;
 						3		:	state <= ldm;
 						4		:	state <= stm; 
@@ -130,6 +115,7 @@ always@(posedge clk or posedge rst)
 						27		:	state <= rrl;
 						28		:	state <= rrr;
 						29		:	state <= not_;
+						31		:	state <= ldr;
 						default	:	state <= nop;
 					endcase
 			
@@ -190,12 +176,17 @@ always@(posedge clk or posedge rst)
 			not_:	state <= fetch;
 						
 			nop: 	state <= fetch;
+
+			ldr:	state <= fetch;
+
+			fetch: state <= decode;
 			endcase
 	
 
-
+// Mealy FSM output logic
 always@(*)
 	begin
+		// assign by exception:
 		port_addr <= 0;
 		write_e <= 0;
 		read_e <= 0;
@@ -232,6 +223,13 @@ always@(*)
 									wa  <=  instruction[10:8];
 									port_addr  <=  instruction[7:0];
 								end
+						    // prepare to read from ROM 0x07nn into register in 'wa'...
+							else if (opcode == ldr)
+								begin
+									wa  <=  instruction[10:8]; // 'nn'
+									naddress <= {3'h7, instruction[7:0]};
+								end
+							// return instruction, so prepare to pop from stack 
 							else if (opcode == ret)
 								begin
 									rd_en <= 1;
@@ -251,6 +249,14 @@ always@(*)
 						read_e <= 1;
 						port_addr <= instruction[7:0];
 					end
+
+			ldr:	begin 
+						wa <= instruction[10:8];
+						we <= 1;
+						// ???? Can this be done? Reading from ROM before PC is applied to
+						// fetch the next instruction?	
+
+					end
 					
 			stm:	begin
 						raa <= instruction[10:8];
@@ -266,7 +272,7 @@ always@(*)
 					end
 					
 			add:	begin
-						ldflag <= 1;  // added 16/07/21 - we want 'add' to affect the zero and carry flags!
+						ldflag <= 1;  
 						raa <= instruction[10:8];
 						rab <= instruction[7:5];
 						wa <= instruction[10:8];
@@ -276,7 +282,7 @@ always@(*)
 					end
 					
 			sub:	begin
-						ldflag <= 1;  // added 16/07/21 - we want 'sub' to affect the zero and carry flags!
+						ldflag <= 1;  
 						raa <= instruction[10:8];
 						rab <= instruction[7:5];
 						wa <= instruction[10:8];
@@ -286,7 +292,7 @@ always@(*)
 					end
 					
 			and_:	begin
-						ldflag <= 1;  // added 16/07/21 - we want 'and' to affect the zero flag!
+						ldflag <= 1; 
 						raa <= instruction[10:8];
 						rab <= instruction[7:5];
 						wa <= instruction[10:8];
@@ -296,7 +302,7 @@ always@(*)
 					end
 					
 			oor:	begin
-						ldflag <= 1;  // added 16/07/21 - we want 'or' to affect the zero flag!
+						ldflag <= 1;  
 						raa <= instruction[10:8];
 						rab <= instruction[7:5];
 						wa <= instruction[10:8];
@@ -306,7 +312,7 @@ always@(*)
 					end
 					
 			xor_:	begin
-						ldflag <= 1;  // added 16/07/21 - we want 'xor' to affect the zero flag!
+						ldflag <= 1;  
 						raa <= instruction[10:8];
 						rab <= instruction[7:5];
 						wa <= instruction[10:8];
@@ -314,21 +320,22 @@ always@(*)
 						opalu <= 2;
 						we <= 1;
 					end
-					
+
+			// jumps to new ROM location - prepare to change PC to new address		
 			jmp:	begin
 						naddress <= instruction[10:0];
 						selpc <= 1;
 						ldpc <= 1;
 					end
 					
-			jpz:		if (z)
+			jpz:		if (zero)
 						begin
 							naddress <= instruction[10:0];
 							selpc <= 1;
 							ldpc <= 1;
 						end
 										
-			jnz:		if (!z)
+			jnz:		if (!zero)
 							begin
 								naddress <= instruction[10:0];
 								selpc <= 1;
@@ -336,7 +343,7 @@ always@(*)
 							end
 						
 					
-			jpc:	if (c)
+			jpc:	if (carry)
 							begin
 								naddress <= instruction[10:0];
 								selpc <= 1;
@@ -344,28 +351,62 @@ always@(*)
 							end
 						
 					
-			jnc:	if (!c)
+			jnc:	if (!carry)
 							begin
 								naddress <= instruction[10:0];
 								selpc <= 1;
 								ldpc <= 1;
 							end
-							
+			// subroutine calls - prepare to push PC to stack and jump to new address				
 			csr:	begin
 						naddress <= instruction[10:0];
 						selpc <= 1;
 						ldpc <= 1;
 						wr_en <= 1;
 					end
+			
+			csz:	if (zero)
+						begin
+							naddress <= instruction[10:0];
+							selpc <= 1;
+							ldpc <= 1;
+							wr_en <= 1;
+						end
+						
+			cnz:	if (!zero)
+						begin
+							naddress <= instruction[10:0];
+							selpc <= 1;
+							ldpc <= 1;
+							wr_en <= 1;
+						end
 					
+			csc:	if (carry)
+						begin
+							naddress <= instruction[10:0];
+							selpc <= 1;
+							ldpc <= 1;
+							wr_en <= 1;
+						end
+					
+			cnc:	if (!carry)
+						begin
+							naddress <= instruction[10:0];
+							selpc <= 1;
+							ldpc <= 1;
+							wr_en <= 1;
+						end
+
+			// return from subroutine - pop from stack to PC 		
 			ret:	begin
 						naddress <= stack_addr;
 						selpc <= 1;
 						ldpc <= 1;
 					end
-					
+
+			// arithmetic and logic - prepare ALU or shifter unit for operation		
 			adi:	begin
-						ldflag <= 1;  // added 16/07/21 - we want 'adi' to affect the zero and carry flags!
+						ldflag <= 1;  
 						raa <= instruction[10:8];
 						wa <= instruction[10:8];
 						imm <= instruction[7:0];
@@ -374,38 +415,7 @@ always@(*)
 						opalu <= 5;
 						we <= 1;
 					end	
-					
-			csz:	if (z)
-						begin
-							naddress <= instruction[10:0];
-							selpc <= 1;
-							ldpc <= 1;
-							wr_en <= 1;
-						end
-						
-			cnz:	if (!z)
-						begin
-							naddress <= instruction[10:0];
-							selpc <= 1;
-							ldpc <= 1;
-							wr_en <= 1;
-						end
-						
-			csc:	if (c)
-						begin
-							naddress <= instruction[10:0];
-							selpc <= 1;
-							ldpc <= 1;
-							wr_en <= 1;
-						end
-						
-			cnc:	if (!c)
-						begin
-							naddress <= instruction[10:0];
-							selpc <= 1;
-							ldpc <= 1;
-							wr_en <= 1;
-						end
+				
 			
 			sl0:	begin	
 						raa <= instruction[10:8];

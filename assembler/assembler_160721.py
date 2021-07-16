@@ -1,10 +1,20 @@
 #!/usr/bin/python
 
+# O. Bailey 29/08/15: Added line 150 to remove semicolon delimited comments
+# from each line
+# O.Bailey 13/07/2021: Converted 'print xyz' to python3 print(xyz)
+# O.Bailey 15/07/2021: 
+#                       added "org dddd" and "org 0xhhhh" handling of address) <<<< *** TBD to keep track of address!! ***
+#                       line 121: f=open(file,'rU') changed to:  f=open(file,'r')
+#                       added regex handling of comment removal
+#                       added decimal integer or hex '0x...' handling of literals  <<<<< *** TBD!!! ****
+
+
 import sys
 import re
 import time
 
-instr_type1=['ldi','ldm','stm', 'adi','ldr']
+instr_type1=['ldi','ldm','stm', 'adi']
 instr_type2=['cmp','add','sub','and','oor','xor']
 instr_type3=['jmp','jpz','jnz','jpc','jnc','csr', 'csz', 'cnz', 'csc', 'cnc']
 instr_type4=['sl0','sl1','sr0','sr1','rrl','rrr', 'not']
@@ -41,7 +51,7 @@ tokens['rrl']=27
 tokens['rrr']=28
 tokens['not']=29
 tokens['nop']=30
-tokens['ldr']=31
+tokens['.org']=31 # address origin assembler directive, NOT a CPU opcode
 
 def remove_comments_from_line(line_in):
     # regex for stripping out comments
@@ -67,44 +77,44 @@ def convert_address_to_integer(addr):
         print('invalid address after:' + addr)
         sys.exit(1)
 
-def verify_registers(line):
+def verify_args(line):
     if len(line)>1:
         line_split=line.split()
-        token= line_split[0]
-        if token in (instr_type1 + instr_type2 + instr_type4):
-            registers=re.findall(r'r(\d+)',line)
+        opcode=line_split[0]
+        if opcode in (instr_type1 + instr_type2 + instr_type4):
+            args=re.findall(r'r(\d+)',line)
     else:
         return ('line too short: ' + line)
-    if not token in (instr_type1 + instr_type2 + instr_type3 + instr_type4 + instr_type5 + directives):
-        return ('unknown command: ' + token)
+    if not opcode in (instr_type1 + instr_type2 + instr_type3 + instr_type4 + instr_type5 + directives):
+        return ('unknown command: ' + opcode)
     else:
-        if token in instr_type1:
-            literals=line.split(',')
-            low_byte=literals[1]
+        if opcode in instr_type1:
+            arg2=line.split(',')
+            direccion=arg2[1]
 
-            if len(registers)!=1 :
+            if len(args)!=1 :
                 return 'incorrect number of arguments'
             else:
-                if int(registers[0])<0 or int(registers[0])>7:
+                if int(args[0])<0 or int(args[0])>7:
                     return 'arg1 out of range (0-7)'
                 else:
-                    if int(low_byte)<0 or int(low_byte)>255:
-                        return 'addr or literal out of range (0-255)'
+                    if int(direccion)<0 or int(direccion)>255:
+                        return 'addr out of range (0-255)'
                     else:
                         return 'ok'
 
-        if token in instr_type2:
-            if len(registers)!=2:
+        if opcode in instr_type2:
+            if len(args)!=2:
                 return 'incorrect number of arguments'
             else:
-                if int(registers[0])<0 or int(registers[0])>7:
+                if int(args[0])<0 or int(args[0])>7:
                     return 'arg1 out of range (0-7)'
                 else:
-                    if int(registers[1])<0 or int(registers[1])>7:
-                        return 'literals out of range (0-7)'
+                    if int(args[1])<0 or int(args[1])>7:
+                        return 'arg2 out of range (0-7)'
                     else:
                         return 'ok'
-        if token in instr_type3:
+        if opcode in instr_type3:
             addr=line_split[1]
             if len(line_split)!=2:
                 return 'incorrect argument'
@@ -114,29 +124,29 @@ def verify_registers(line):
                 else:
                     return 'ok'
 
-        if token in instr_type4:
-            if len(registers)!=1 :
+        if opcode in instr_type4:
+            if len(args)!=2 :
                 return 'incorrect number of arguments'
             else:
-                if int(registers[0])<0 or int(registers[0])>7:
-                    return 'arg0 out of range (0-7)'
+                if int(args[1])<0 or int(args[1])>7:
+                    return 'arg1 out of range (0-7)'
                 else:
                     return 'ok'
 
-        if token in instr_type5:
+        if opcode in instr_type5:
             return 'ok'
         
-        if token == '.org':
+        if opcode == '.org':
             addr = line_split[1]
             addr = convert_address_to_integer(addr)         
             if addr<0 or addr>2048:
-                return ('address out of range (0-2048): ' + token + " " + addr)
+                return ('address out of range (0-2048): ' + opcode + " " + addr)
             else:
                 return 'ok'
             
 
 def extract_info(file,flag):
-    labels={}
+    tags={}
     # open file and preprocess by converting to lower case
     f=open(file,'r')
     text=f.read()
@@ -156,13 +166,13 @@ def extract_info(file,flag):
         line = remove_comments_from_line(line_in)
         if len(line)!=0:
             line_split=line.split()
-            token= line_split[0]
+            opcode=line_split[0]
             # if the first tag is not an instruction or directive....
-            if not token in ( instr_type1 + instr_type2 + instr_type3 + instr_type4 + instr_type5 + directives):
+            if not opcode in ( instr_type1 + instr_type2 + instr_type3 + instr_type4 + instr_type5 + directives):
                 # then it's a label, and if we haven't seen it aldready...
-                if not token in labels:
+                if not opcode in tags:
                     # add it to the tag dictionary...
-                    labels[token]=line_number
+                    tags[opcode]=line_number
                     # and remove label from current line
                     line=' '.join(line_split[1:])
                     line='\t'+line
@@ -173,64 +183,48 @@ def extract_info(file,flag):
             line_number+=1
 
     text2='\n'.join(lines2)
-    ##parte que se encarga de reemplazar los labels en las low_bytees
-    for labels_elements in labels.keys():
-        line2=text2.split(labels_elements)
-        text2=str(labels[labels_elements]).join(line2)
+    ##parte que se encarga de reemplazar los tags en las direcciones
+    for tags_elements in tags.keys():
+        line2=text2.split(tags_elements)
+        text2=str(tags[tags_elements]).join(line2)
 
 
     lines=text2.split('\n')
     error_line=0
     text_asm=''
     for line in lines:  
-        erro=verify_registers(line)
+        erro=verify_args(line)
         if erro!='ok':
             print ('error in line:',error_line)
             print (line, '->', erro,'\n')
             sys.exit(1)
         else:
             line_split=line.split()
-            token= line_split[0]
-
-            # instructions with operands - so get them
-            if token in (instr_type1 + instr_type2 + instr_type4):
-                registers = re.findall(r'r(\d+)',line)
-
-            # load and stores to memory and/or registers
-            if token in instr_type1:
-                literals=line.split(',')
-                low_byte=literals[1]
-                machine_code=(tokens[token]<<11) | (int(registers[0])<<8) | int(low_byte)
-                text_asm += '%X' % machine_code + '\n'
-
-            # arithmetic and logic
-            if token in instr_type2:
-                machine_code=(tokens[token]<<11) | (int(registers[0])<<8) | (int(registers[1])<<5)
-                text_asm += '%X' % machine_code + '\n'
-
-            # branching (jumps and calls)
-            if token in instr_type3:
+            opcode=line_split[0]
+            if opcode in (instr_type1 + instr_type2 + instr_type4):
+                args=re.findall(r'r(\d+)',line)
+            if opcode in instr_type1:
+                arg2=line.split(',')
+                direccion=arg2[1]
+                dato=(tokens[opcode]<<11) | (int(args[0])<<8) | int(direccion)
+                text_asm+= '%X' % dato + '\n'
+            if opcode in instr_type2:
+                dato=(tokens[opcode]<<11) | (int(args[0])<<8) | (int(args[1])<<5)
+                text_asm+= '%X' % dato + '\n'
+            if opcode in instr_type3:
                 addr=line_split[1]
-                machine_code=(tokens[token]<<11) | int(addr)
-                text_asm += '%X' % machine_code + '\n'
-
-            # shift/rotate/negation with only one register specified
-            if token in instr_type4:
-                machine_code=(tokens[token]<<11) | (int(registers[0])<<8)
-                text_asm += '%X' % machine_code + '\n'
-
-            # no operand instrucitons (ret, nop)
-            if token in instr_type5:
-                machine_code=(tokens[token]<<11)
-                text_asm += '%X' % machine_code + '\n'
-
-            # assembler directives (origin, define data, named constants, etc.)
-            if token in directives:
+                dato=(tokens[opcode]<<11) | int(addr)
+                text_asm+= '%X' % dato + '\n'
+            if opcode in instr_type4:
+                dato=(tokens[opcode]<<11) | (int(args[1])<<8)
+                text_asm+= '%X' % dato + '\n'
+            if opcode in instr_type5:
+                dato=(tokens[opcode]<<11)
+                text_asm+= '%X' % dato + '\n'
+            if opcode in directives:
                 addr=line_split[1]
                 current_address = convert_address_to_integer(addr)
                 text_asm += '@' + str(current_address) + '\n'
-
-            # just increment address to next instruction...
             else:
                 current_address = current_address + 1 
                 
@@ -254,20 +248,20 @@ def extract_info(file,flag):
 
 def main():
     # get the arguments e.g "-s example.asm"
-    registers = sys.argv[1:]
+    args = sys.argv[1:]
 
-    if not registers:
+    if not args:
         print ('usage: python3 assembler.py [-s] your_code.asm')
         print ('-s show the assembly output')
         sys.exit(1)
 
     show = False
-    if registers[0] == '-s':
+    if args[0] == '-s':
         show = True
-        del registers[0]
+        del args[0]
 
     # assemble to machine code
-    text=extract_info(registers[0],show)
+    text=extract_info(args[0],show)
     # save results
     print ('\n\nSaving results to instructions.mem...')
     outf = open('instructions.mem', 'w')

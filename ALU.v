@@ -28,7 +28,7 @@ module ALU(
 
 reg [7:0] resu;
 
-always@*
+always @(*)
 	case (opalu)
 		0: resu <= ~a;
 		1: resu <= a & b;
@@ -40,9 +40,9 @@ always@*
 		default: resu <= a + 1;
 	endcase
 	
-assign zero=(resu==0);
-assign result=resu;
-assign carry=(a<b);
+assign zero = (resu==0);
+assign result = resu;
+assign carry = (a < b);
 		
 
 endmodule

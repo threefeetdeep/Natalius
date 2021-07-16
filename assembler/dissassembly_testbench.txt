@@ -1,0 +1,25 @@
+line no.        addr    inst                    asm
+-----------------------------------------------------
+0       117B                    ldi r1,123
+1       1200                    ldi r2,0
+2       3220                    add r2,r1
+3       220A                    stm r2,10
+4       F000                    nop
+5       F000                    nop
+6       F000                    nop
+7       1B0A                    ldm r3,10
+8       2A60                    cmp r2,r3
+9       980F                    csz 15
+10      127A                    ldi r2, 122
+11      3940                    sub r1,r2
+12      E900                    not r1
+13      F000                    nop
+14      580D                    jmp 13
+15      1455                    ldi r4, 85
+16      15AA                    ldi r5, 170
+17      16FF                    ldi r6, 255
+18      1701                    ldi r7, 1
+19      4CA0                    oor r4,r5
+20      44E0                    and r4, r7
+21      55C0                    xor r5,r6
+22      8800                    ret

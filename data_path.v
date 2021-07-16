@@ -51,7 +51,7 @@ module data_path(
     output [7:0] data_out,
     output [10:0] inst_addr,
 	output [10:0] stack_addr,
-	output reg z,c
+	output reg zero_o,carry_o
     );
 
 wire [7:0] regmux, muxkte, muximm;
@@ -63,10 +63,10 @@ wire [7:0] shiftout;
 reg [10:0] PC;
 wire [10:0] fifo_out;
 
-regfile registros(regmux,clk,we,wa,raa,rab,portA,portB);
-ALU alui(portA,muximm,aluresu,opalu,zero,carry);
-shiftbyte shif_reg(aluresu,shiftout,sh);
-LIFO LIFOi(clk,rst,wr_en,rd_en,PC,fifo_out);
+regfile the_registers(regmux,clk,we,wa,raa,rab,portA,portB);
+ALU the_alu(portA,muximm,aluresu,opalu,zero,carry);
+shiftbyte the_shifter(aluresu,shiftout,sh);
+LIFO the_stack(clk,rst,wr_en,rd_en,PC,fifo_out);
 
 assign stack_addr=fifo_out+1;
 assign regmux=insel? shiftout : muxkte;
@@ -76,14 +76,14 @@ assign muximm=selimm? imm : portB;
 always@(posedge clk or posedge rst)
 	if (rst)
 		begin
-			z <= 0;
-			c <= 0;
+			zero_o <= 0;
+			carry_o <= 0;
 		end
 	else
 		if (ldflag)	
 			begin
-				z <= zero;
-				c <= carry;
+				zero_o <= zero;
+				carry_o <= carry;
 			end
 
 always@(posedge clk or posedge rst)
@@ -96,8 +96,9 @@ always@(posedge clk or posedge rst)
 			else
 				PC <= PC+1;
 
-assign inst_addr=PC;
-assign data_out=shiftout;
+
+assign inst_addr = PC;
+assign data_out  = shiftout;
 
 endmodule
 

@@ -9,7 +9,7 @@ negro	stm r0,32
 		ldi r1,80    
 		ldi r2,60  
 		ldi r3,0   
-		ldi r4,0   
+		ldi r4,0
 nextc	cmp r4,r1
 		jpz inc_fil
 		stm r3,64

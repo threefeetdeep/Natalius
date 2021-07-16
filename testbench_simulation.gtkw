@@ -1,0 +1,64 @@
+[*]
+[*] GTKWave Analyzer v3.3.100 (w)1999-2019 BSI
+[*] Fri Jul 16 16:45:46 2021
+[*]
+[dumpfile] "C:\Users\oli.bailey\Documents\Code\Verilog\MyLibs\CPU\Natalius\tb_natalius.vcd"
+[dumpfile_mtime] "Fri Jul 16 16:41:19 2021"
+[dumpfile_size] 17962
+[savefile] "C:\Users\oli.bailey\Documents\Code\Verilog\MyLibs\CPU\Natalius\testbench_simulation.gtkw"
+[timestart] 204300
+[size] 1920 1017
+[pos] -243 -243
+*-17.313330 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_natalius.
+[treeopen] tb_natalius.processor.
+[treeopen] tb_natalius.processor.the_data_path.
+[sst_width] 306
+[signals_width] 334
+[sst_expanded] 1
+[sst_vpaned_height] 300
+@28
+tb_natalius.processor.the_control_unit.clk
+tb_natalius.processor.the_control_unit.rst
+@c00024
+tb_natalius.processor.the_data_path.PC[10:0]
+@28
+(0)tb_natalius.processor.the_data_path.PC[10:0]
+(1)tb_natalius.processor.the_data_path.PC[10:0]
+(2)tb_natalius.processor.the_data_path.PC[10:0]
+(3)tb_natalius.processor.the_data_path.PC[10:0]
+(4)tb_natalius.processor.the_data_path.PC[10:0]
+(5)tb_natalius.processor.the_data_path.PC[10:0]
+(6)tb_natalius.processor.the_data_path.PC[10:0]
+(7)tb_natalius.processor.the_data_path.PC[10:0]
+(8)tb_natalius.processor.the_data_path.PC[10:0]
+(9)tb_natalius.processor.the_data_path.PC[10:0]
+(10)tb_natalius.processor.the_data_path.PC[10:0]
+@1401204
+-group_end
+@24
+tb_natalius.processor.the_ROM.address[10:0]
+@25
+tb_natalius.processor.the_control_unit.naddress[10:0]
+@22
+tb_natalius.processor.the_control_unit.instruction[15:0]
+@24
+tb_natalius.processor.the_control_unit.state[4:0]
+@28
+tb_natalius.processor.the_control_unit.opalu[2:0]
+@24
+tb_natalius.processor.the_control_unit.raa[2:0]
+tb_natalius.processor.the_control_unit.rab[2:0]
+@28
+tb_natalius.processor.the_data_path.the_registers.wa[2:0]
+@24
+tb_natalius.processor.the_data_path.the_registers.datain[7:0]
+tb_natalius.processor.the_data_path.the_alu.a[7:0]
+tb_natalius.processor.the_data_path.the_alu.b[7:0]
+tb_natalius.processor.the_data_path.the_alu.resu[7:0]
+@28
+tb_natalius.processor.the_data_path.the_alu.zero
+tb_natalius.processor.the_control_unit.ldflag
++{tb_natalius.processor.the_control_unit.zero} tb_natalius.processor.the_control_unit.zero
+[pattern_trace] 1
+[pattern_trace] 0
