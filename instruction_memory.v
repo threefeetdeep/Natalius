@@ -37,7 +37,7 @@ module instruction_memory(
 
    always @(posedge clk)
 		if(we)
-			rom[address]<=0;
+			rom[address] <= 0;
 		else
 			instruction <= rom[address];
 		

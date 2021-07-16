@@ -56,8 +56,8 @@ parameter decode=	5'd1;
 ///////////////////////////////////////////////////////////////////////////////
 //							INSTRUCTION OPCODES
 ///////////////////////////////////////////////////////////////////////////////
-parameter spare1= 	5'd0;		// for future use?
-parameter spare2= 	5'd1;		// for future use?
+parameter spare1= 	5'd0		// for future use?
+parameter spare2= 	5'd1		// for future use?
 parameter ldi=		5'd2;		// load a register (r0..r7) with a literal (0x00..0xFF)
 parameter ldm=		5'd3;		// load a register (r0..r7) from IO (0x20-0xFF) or RAM (0x00-0x1F)
 parameter stm=		5'd4;		// store a register (r0..r7) to IO  (0x20-0xFF) or RAM (0x00-0x1F)

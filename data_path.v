@@ -40,18 +40,18 @@ module data_path(
     input [2:0] opalu,
     input [2:0] sh,
     input selpc,
-	 input selk,
+	input selk,
     input ldpc,
-	 input ldflag,
-	 input wr_en, rd_en,
-	 input [10:0] ninst_addr,
-	 input [7:0] kte,
-	 input [7:0] imm,
-	 input selimm,
+	input ldflag,
+	input wr_en, rd_en,
+	input [10:0] ninst_addr,
+	input [7:0] kte,
+	input [7:0] imm,
+	input selimm,
     output [7:0] data_out,
     output [10:0] inst_addr,
-	 output [10:0] stack_addr,
-	 output reg z,c
+	output [10:0] stack_addr,
+	output reg z,c
     );
 
 wire [7:0] regmux, muxkte, muximm;
@@ -76,25 +76,25 @@ assign muximm=selimm? imm : portB;
 always@(posedge clk or posedge rst)
 	if (rst)
 		begin
-			z<=0;
-			c<=0;
+			z <= 0;
+			c <= 0;
 		end
 	else
 		if (ldflag)	
 			begin
-				z<=zero;
-				c<=carry;
+				z <= zero;
+				c <= carry;
 			end
 
 always@(posedge clk or posedge rst)
 	if (rst)
-		PC<=0;
+		PC <= 0;
 	else
 		if (ldpc)	
 			if(selpc)
-				PC<=ninst_addr;
+				PC <= ninst_addr;
 			else
-				PC<=PC+1;
+				PC <= PC+1;
 
 assign inst_addr=PC;
 assign data_out=shiftout;

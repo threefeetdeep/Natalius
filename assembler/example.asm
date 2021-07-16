@@ -1,4 +1,8 @@
-		csr negro
+; a couple introductory comment lines
+; like this
+		.org 10
+		csr negro  ; show black screen 
+		csr loop
 end		jmp	end
 
 negro	stm r0,32
@@ -18,5 +22,9 @@ inc_fil	ldi r4,0
 		adi r3,1
 		jmp nextc
 fneg 	ret
+
+		.org 0x100  ; another origin example
+loop	ret
+
 
 

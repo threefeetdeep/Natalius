@@ -37,8 +37,9 @@ module natalius_processor(
     input [7:0] data_in,
     output [7:0] data_out    
     );
-
-parameter PATH_TO_PROG_CODE = "instructions.mem"; // override with path to your program code file.
+    
+// override with path to your program code file from instantiating code at top level:
+parameter PATH_TO_PROG_CODE = "instructions.mem"; 
 
 wire z,c;
 wire insel;
